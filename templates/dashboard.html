@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Dashboard</title>
+    <link rel="stylesheet" href="/static/css/style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+</head>
+<body>
+    <div class="dashboard">
+        <h2>Welcome, {{ username }}</h2>
+
+        <!-- Personalized News Feed -->
+        <section>
+            <h3>Personalized News Feed</h3>
+            <ul id="feed">
+                <!-- Feed will be dynamically populated -->
+            </ul>
+        </section>
+
+        <!-- Topic Popularity -->
+        <section>
+            <h3>Topic Popularity Over Time</h3>
+            <ul id="topic-popularity">
+                <!-- Data will be loaded dynamically -->
+            </ul>
+        </section>
+
+        <!-- Most Read Articles -->
+        <section>
+            <h3>Most Read Articles</h3>
+            <ul id="most-read">
+                <!-- Most-read articles will be listed -->
+            </ul>
+        </section>
+
+        <!-- User Stats -->
+        <section>
+            <h3>Your Reading Stats</h3>
+            <ul>
+                <li>Articles Read: <span id="articles-read"></span></li>
+                <li>Preferred Topics: <span id="preferred-topics"></span></li>
+            </ul>
+        </section>
+
+        <!-- Trending Topics -->
+        <section>
+            <h3>Trending Topics</h3>
+            <ul id="trending-topics">
+                <!-- Trending topics data -->
+            </ul>
+        </section>
+
+        <!-- Sentiment Heatmap -->
+        <section>
+            <h3>Sentiment Distribution Heatmap</h3>
+            <canvas id="heatmap-chart" width="400" height="200"></canvas>
+        </section>
+
+        <!-- Logout Button -->
+        <section>
+            <form action="{{ url_for('logout') }}" method="POST">
+                <button type="submit">Logout</button>
+            </form>
+        </section>
+    </div>
+
+    <script>
+        // Fetch dashboard data from the API
+        fetch('/api/dashboard')
+            .then(response => response.json())
+            .then(data => {
+                // Populate the Personalized News Feed
+                const feed = document.getElementById('feed');
+                data.personalized_feed.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.title} - ${item.category} (${item.sentiment})`;
+                    feed.appendChild(li);
+                });
+
+                // Populate Topic Popularity
+                const topicPopularity = document.getElementById('topic-popularity');
+                Object.entries(data.topic_popularity).forEach(([topic, count]) => {
+                    const li = document.createElement('li');
+                    li.textContent = `${topic}: ${count}%`;
+                    topicPopularity.appendChild(li);
+                });
+
+                // Populate Most Read Articles
+                const mostRead = document.getElementById('most-read');
+                data.most_read_articles.forEach(item => {
+                    const li = document.createElement('li');
+                    li.textContent = `${item.title} - ${item.read_count} views`;
+                    mostRead.appendChild(li);
+                });
+
+                // Set User Stats
+                document.getElementById('articles-read').textContent = data.user_stats.articles_read;
+                document.getElementById('preferred-topics').textContent = data.user_stats.preferred_topics.join(', ');
+
+                // Populate Trending Topics
+                const trendingTopics = document.getElementById('trending-topics');
+                data.trending_topics.forEach(topic => {
+                    const li = document.createElement('li');
+                    li.textContent = topic;
+                    trendingTopics.appendChild(li);
+                });
+            })
+            .catch(error => console.error('Error fetching data:', error));
+
+        // Heatmap Chart
+        fetch('/api/heatmap_data')
+            .then(response => response.json())
+            .then(data => {
+                const ctx = document.getElementById('heatmap-chart').getContext('2d');
+                const labels = data.map(item => item.topic);
+                const positive = data.map(item => item.positive);
+                const neutral = data.map(item => item.neutral);
+                const negative = data.map(item => item.negative);
+
+                new Chart(ctx, {
+                    type: 'bar',
+                    data: {
+                        labels: labels,
+                        datasets: [
+                            {
+                                label: 'Positive',
+                                data: positive,
+                                backgroundColor: 'rgba(75, 192, 192, 0.2)',
+                                borderColor: 'rgba(75, 192, 192, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Neutral',
+                                data: neutral,
+                                backgroundColor: 'rgba(201, 203, 207, 0.2)',
+                                borderColor: 'rgba(201, 203, 207, 1)',
+                                borderWidth: 1
+                            },
+                            {
+                                label: 'Negative',
+                                data: negative,
+                                backgroundColor: 'rgba(255, 99, 132, 0.2)',
+                                borderColor: 'rgba(255, 99, 132, 1)',
+                                borderWidth: 1
+                            }
+                        ]
+                    },
+                    options: {
+                        responsive: true,
+                        plugins: {
+                            legend: {
+                                position: 'top',
+                            },
+                            title: {
+                                display: true,
+                                text: 'Sentiment Distribution Heatmap'
+                            }
+                        }
+                    }
+                });
+            })
+            .catch(error => console.error('Error fetching heatmap data:', error));
+    </script>
+</body>
+</html>
